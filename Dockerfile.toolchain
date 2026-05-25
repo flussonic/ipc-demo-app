@@ -1,0 +1,30 @@
+FROM ubuntu:24.04
+
+ARG TOOLCHAIN_ARCHIVE
+ARG TOOLCHAIN_PREFIX=arm-linux-
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TOOLCHAIN=/opt/toolchain
+ENV CROSS_PREFIX=/opt/toolchain/bin/${TOOLCHAIN_PREFIX}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    file \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY ${TOOLCHAIN_ARCHIVE} /tmp/toolchain.tgz
+
+RUN mkdir -p "${TOOLCHAIN}" \
+  && tar -xzf /tmp/toolchain.tgz -C "${TOOLCHAIN}" --strip-components=1 \
+  && rm /tmp/toolchain.tgz \
+  && if [ -x "${TOOLCHAIN}/relocate-sdk.sh" ]; then "${TOOLCHAIN}/relocate-sdk.sh" "${TOOLCHAIN}"; fi \
+  && test -x "${CROSS_PREFIX}gcc" \
+  && test -x "${CROSS_PREFIX}readelf"
+
+WORKDIR /src
+COPY src src
+
+RUN mkdir -p build \
+  && "${CROSS_PREFIX}gcc" -std=c99 -Os -Wall -Wextra -pedantic src/http_200.c -o build/http_200 -static \
+  && "${CROSS_PREFIX}readelf" -h build/http_200
+
+CMD ["sh", "-c", "\"${CROSS_PREFIX}readelf\" -h build/http_200"]
