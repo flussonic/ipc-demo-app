@@ -7,8 +7,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TOOLCHAIN=/opt/toolchain
 ENV CROSS_PREFIX=/opt/toolchain/bin/${TOOLCHAIN_PREFIX}
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    file \
+RUN \
+  dpkg --add-architecture i386 && \
+  apt-get update && apt-get install -y --no-install-recommends \
+  libc6:i386 libstdc++6:i386 zlib1g:i386 \
+  file \
   && rm -rf /var/lib/apt/lists/*
 
 COPY ${TOOLCHAIN_ARCHIVE} /tmp/toolchain.tgz
